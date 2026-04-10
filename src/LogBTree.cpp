@@ -1,14 +1,14 @@
-	#include "../h/LSMTree.hpp"
+	#include "../h/LogBTree.hpp"
 	#include <algorithm>
 	#include <filesystem>
 	#include <iostream>
-	#include <map>
+	#include <map>	
 	#include <stdexcept>
 	
 	using namespace std;
 	namespace fs = std::filesystem;
 	
-	LSMTree::LSMTree(int degree,
+	LogBTree::LogBTree(int degree,
 					 int levels,
 					 const vector<int>& capacityPerLevel,
 					 const string& name)
@@ -18,34 +18,34 @@
 		  capacities(capacityPerLevel),
 		  lsmName(name) {
 		if (levels <= 0) {
-			throw invalid_argument("LSMTree: levels must be positive");
+			throw invalid_argument("LogBTree: levels must be positive");
 		}
 		if (capacities.size() != static_cast<size_t>(levels)) {
-			throw invalid_argument("LSMTree: capacity list size must match levels");
+			throw invalid_argument("LogBTree: capacity list size must match levels");
 		}
 		if (capacities[0] <= 0) {
-			throw invalid_argument("LSMTree: memory level capacity must be positive");
+			throw invalid_argument("LogBTree: memory level capacity must be positive");
 		}
 		for (size_t i = 1; i < capacities.size(); ++i) {
 			if (capacities[i] <= 0) {
-				throw invalid_argument("LSMTree: disk level capacities must be positive");
+				throw invalid_argument("LogBTree: disk level capacities must be positive");
 			}
 		}
-		memoryTree = new BPlusTree<LSMTree::KeyType>(treeDegree);
+		memoryTree = new BPlusTree<LogBTree::KeyType>(treeDegree);
 		levelFilenames.resize(levels);
 		for (int level = 1; level < levels; ++level) {
 			levelFilenames[level] = buildFilename(level);
 		}
 	}
 	
-	LSMTree::~LSMTree() {
+	LogBTree::~LogBTree() {
 		if (memoryTree) {
 			delete memoryTree;
 			memoryTree = nullptr;
 		}
 	}
 	
-	void LSMTree::insert(LSMTree::KeyType key, LSMTree::ValueType value) {
+	void LogBTree::insert(LogBTree::KeyType key, LogBTree::ValueType value) {
 		auto tombstoneIt = tombstones.find(key);
 		if (tombstoneIt != tombstones.end()) {
 			tombstones.erase(tombstoneIt);
@@ -57,7 +57,7 @@
 		}
 	}
 	
-	LSMTree::ValueType* LSMTree::search(LSMTree::KeyType key) {
+	LogBTree::ValueType* LogBTree::search(LogBTree::KeyType key) {
 		if (tombstones.count(key)) {
 			return nullptr;
 		}
@@ -78,7 +78,7 @@
 		return nullptr;
 	}
 	
-	bool LSMTree::remove(LSMTree::KeyType key) {
+	bool LogBTree::remove(LogBTree::KeyType key) {
 		ValueType* inMemory = memoryTree->search(key);
 		if (inMemory) {
 			memoryTree->remove(key);
@@ -97,7 +97,7 @@
 		return false;
 	}
 	
-	vector<LSMTree::Record> LSMTree::getAllRecords() {
+	vector<LogBTree::Record> LogBTree::getAllRecords() {
 		vector<Record> allRecords = memoryTree->getAllRecords();
 		for (int level = 1; level < totalLevels; ++level) {
 			auto levelRecords = readLevelRecords(level);
@@ -108,14 +108,14 @@
 		return allRecords;
 	}
 	
-	int LSMTree::getTotalElements() const {
+	int LogBTree::getTotalElements() const {
 		int total = memoryTree->numOfElements;
 		for (int level = 1; level < totalLevels; ++level) {
 			const string& filename = levelFilenames[level];
 			if (filename.empty() || !fs::exists(filename)) {
 				continue;
 			}
-			auto records = BPlusTree<LSMTree::KeyType>(treeDegree).getFromFile(filename);
+			auto records = BPlusTree<LogBTree::KeyType>(treeDegree).getFromFile(filename);
 			if (records) {
 				total += static_cast<int>(records->size());
 				delete records;
@@ -125,11 +125,11 @@
 		return max(total, 0);
 	}
 	
-	int LSMTree::getMemoryElements() const {
+		int LogBTree::getMemoryElements() const {
 		return memoryTree->numOfElements;
 	}
 	
-	int LSMTree::getDiskFiles() const {
+	int LogBTree::getDiskFiles() const {
 		int files = 0;
 		for (int level = 1; level < totalLevels; ++level) {
 			auto filename = levelFilenames[level];
@@ -140,7 +140,7 @@
 		return files;
 	}
 	
-	void LSMTree::flushMemoryLevel() {
+	void LogBTree::flushMemoryLevel() {
 		auto memoryRecords = memoryTree->getAllRecords();
 		if (memoryRecords.empty()) {
 			return;
@@ -149,7 +149,7 @@
 		mergeIntoLevel(1, std::move(memoryRecords));
 	}
 	
-	void LSMTree::mergeIntoLevel(int levelIndex, vector<Record>&& incoming) {
+	void LogBTree::mergeIntoLevel(int levelIndex, vector<Record>&& incoming) {
 		if (incoming.empty()) {
 			return;
 		}
@@ -174,7 +174,7 @@
 		mergeIntoLevel(levelIndex + 1, std::move(incoming));
 	}
 	
-	vector<LSMTree::Record> LSMTree::readLevelRecords(int levelIndex) const {
+	vector<LogBTree::Record> LogBTree::readLevelRecords(int levelIndex) const {
 		vector<Record> records;
 		if (levelIndex <= 0 || levelIndex >= totalLevels) {
 			return records;
@@ -185,7 +185,7 @@
 			return records;
 		}
 	
-		auto rawRecords = BPlusTree<LSMTree::KeyType>(treeDegree).getFromFile(filename);
+		auto rawRecords = BPlusTree<LogBTree::KeyType>(treeDegree).getFromFile(filename);
 		if (rawRecords) {
 			records.assign(rawRecords->begin(), rawRecords->end());
 			delete rawRecords;
@@ -193,7 +193,7 @@
 		return records;
 	}
 	
-	void LSMTree::writeLevelRecords(int levelIndex, const vector<Record>& records) {
+	void LogBTree::writeLevelRecords(int levelIndex, const vector<Record>& records) {
 		if (levelIndex <= 0 || levelIndex >= totalLevels) {
 			return;
 		}
@@ -210,7 +210,7 @@
 		sort(sortedRecords.begin(), sortedRecords.end(),
 			 [](const Record& a, const Record& b) { return a.first < b.first; });
 	
-		BPlusTree<LSMTree::KeyType>* levelTree = new BPlusTree<LSMTree::KeyType>(treeDegree);
+		BPlusTree<LogBTree::KeyType>* levelTree = new BPlusTree<LogBTree::KeyType>(treeDegree);
 		levelTree->bottom_up(sortedRecords);
 		if (!levelTree->writeToFile(filename)) {
 			cerr << "Failed to write LSM level to " << filename << endl;
@@ -218,16 +218,16 @@
 		delete levelTree;
 	}
 	
-	string LSMTree::buildFilename(int levelIndex) const {
-		return "LSM_" + lsmName + "_LVL" + to_string(levelIndex) + ".bin";
+	string LogBTree::buildFilename(int levelIndex) const {
+		return "Log_" + lsmName + "_LVL" + to_string(levelIndex) + ".bin";
 	}
 	
-	void LSMTree::resetMemoryTree() {
+	void LogBTree::resetMemoryTree() {
 		delete memoryTree;
-		memoryTree = new BPlusTree<LSMTree::KeyType>(treeDegree);
+		memoryTree = new BPlusTree<LogBTree::KeyType>(treeDegree);
 	}
 	
-	void LSMTree::applyTombstones(vector<Record>& records) {
+	void LogBTree::applyTombstones(vector<Record>& records) {
 		if (tombstones.empty() || records.empty()) {
 			return;
 		}
@@ -246,7 +246,7 @@
 		}
 	}
 	
-	void LSMTree::compactAndDeduplicate(vector<Record>& records) {
+	void LogBTree::compactAndDeduplicate(vector<Record>& records) {
 		if (records.empty()) {
 			return;
 		}

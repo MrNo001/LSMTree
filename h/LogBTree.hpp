@@ -1,5 +1,5 @@
-#ifndef LSMTREE_HPP
-#define LSMTREE_HPP
+#ifndef LOGBTREE_HPP
+#define LOGBTREE_HPP
 
 #include <string>
 #include <unordered_set>
@@ -7,17 +7,17 @@
 
 #include "../src/BTree.cpp"
 
-		class LSMTree {
+		class LogBTree {
 public:
 		using KeyType = int;
     using ValueType = typename BPlusTree<KeyType>::ValueType;
     using Record = typename BPlusTree<KeyType>::Record;
 
-    LSMTree(int degree,
+    LogBTree(int degree,
             int levels,
             const std::vector<int>& capacityPerLevel,
             const std::string& name);
-    ~LSMTree();
+    ~LogBTree();
 
 		void insert(KeyType key, ValueType value);
 		ValueType* search(KeyType key);
@@ -45,5 +45,5 @@ private:
     std::string lsmName;
 		std::unordered_set<KeyType> tombstones;
 };
-#endif // LSMTREE_HPP
+#endif // LOGBTREE_HPP
 

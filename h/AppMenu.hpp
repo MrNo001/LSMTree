@@ -8,7 +8,7 @@
 		void run();
 	private:
 		void printMenu();
-		void lsmOperations();
+		void logBTreeOperations();
 	};
 	
 	#endif // APPMENU_HPP

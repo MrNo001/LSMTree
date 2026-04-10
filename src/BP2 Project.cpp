@@ -6,14 +6,14 @@
 #include <random>
 #include <algorithm>
 #include "BTree.cpp"
-#include "../h/LSMTree.hpp"
+#include "../h/LogBTree.hpp"
 #include "../h/AppMenu.hpp"
 
 using namespace std;
 
-void cleanupLSMFiles(const string& baseName, int levels) {
+void cleanupLogBTreeFiles(const string& baseName, int levels) {
     for (int level = 1; level < levels; ++level) {
-        string filename = "LSM_" + baseName + "_LVL" + to_string(level) + ".bin";
+        string filename = "Log_" + baseName + "_LVL" + to_string(level) + ".bin";
         remove(filename.c_str());
     }
 }
@@ -284,28 +284,28 @@ void testRemoveFunction() {
     delete tree;
 }
 
-void testLSM() {
-    cout << "=== Testing LSM Tree Implementation ===" << endl;
+void testLogBTree() {
+    cout << "=== Testing Log B+ Tree Implementation ===" << endl;
     
     vector<int> levelCapacities = {80, 200, 500};
     const int levels = static_cast<int>(levelCapacities.size());
-    const string lsmName = "Test";
-    cleanupLSMFiles(lsmName, levels);
+    const string logBTreeName = "Test";
+    cleanupLogBTreeFiles(logBTreeName, levels);
     
-    LSMTree* lsmTree = new LSMTree(3, levels, levelCapacities, lsmName);
+    LogBTree* logBTree = new LogBTree(3, levels, levelCapacities, logBTreeName);
     
-    cout << "Created LSM Tree with memory limit of " << levelCapacities[0] << " keys" << endl;
+    cout << "Created Log B+ Tree with memory limit of " << levelCapacities[0] << " keys" << endl;
     
     // Insert 200 keys to trigger multiple merges
     cout << "\n=== Phase 1: Inserting 200 keys ===" << endl;
     for (int i = 1; i <= 200; i++) {
-        lsmTree->insert(i, i * 100);
+        logBTree->insert(i, i * 100);
         
         // Show progress every 20 insertions
         if (i % 20 == 0) {
-            cout << "Inserted " << i << " keys. Memory: " << lsmTree->getMemoryElements() 
-                 << ", Disk files: " << lsmTree->getDiskFiles() 
-                 << ", Total: " << lsmTree->getTotalElements() << endl;
+                    cout << "Inserted " << i << " keys. Memory: " << logBTree->getMemoryElements() 
+                 << ", Disk files: " << logBTree->getDiskFiles() 
+                 << ", Total: " << logBTree->getTotalElements() << endl;
         }
     }
     
@@ -314,7 +314,7 @@ void testLSM() {
     // Test searches in memory
     cout << "Testing searches in memory tree..." << endl;
     for (int i = 190; i <= 200; i++) {
-        int* result = lsmTree->search(i);
+        int* result = logBTree->search(i);
         if (result && *result == i * 100) {
             cout << "Key " << i << " found in memory: " << *result << endl;
         } else {
@@ -325,7 +325,7 @@ void testLSM() {
     // Test searches in disk files
     cout << "\nTesting searches in disk files..." << endl;
     for (int i = 1; i <= 10; i++) {
-        int* result = lsmTree->search(i);
+        int* result = logBTree->search(i);
         if (result && *result == i * 100) {
             cout << "Key " << i << " found in disk: " << *result << endl;
         } else {
@@ -334,7 +334,7 @@ void testLSM() {
     }
     
     cout << "\n=== Phase 3: Testing GetAllRecords ===" << endl;
-    auto allRecords = lsmTree->getAllRecords();
+    auto allRecords = logBTree->getAllRecords();
     cout << "Total records retrieved: " << allRecords.size() << endl;
     
     // Verify all records are present and sorted
@@ -377,9 +377,9 @@ void testLSM() {
     }
     
     cout << "\n=== Phase 4: Final Statistics ===" << endl;
-    cout << "Memory elements: " << lsmTree->getMemoryElements() << endl;
-    cout << "Disk files: " << lsmTree->getDiskFiles() << endl;
-    cout << "Total elements: " << lsmTree->getTotalElements() << endl;
+        cout << "Memory elements: " << logBTree->getMemoryElements() << endl;
+    cout << "Disk files: " << logBTree->getDiskFiles() << endl;
+    cout << "Total elements: " << logBTree->getTotalElements() << endl;
     
     // Test some random searches
     cout << "\n=== Phase 5: Random Search Test ===" << endl;
@@ -390,7 +390,7 @@ void testLSM() {
     bool randomSearchesWork = true;
     for (int i = 0; i < 10; i++) {
         int randomKey = dis(gen);
-        int* result = lsmTree->search(randomKey);
+        int* result = logBTree->search(randomKey);
         if (result && *result == randomKey * 100) {
             cout << "Random key " << randomKey << " found: " << *result << endl;
         } else {
@@ -403,14 +403,14 @@ void testLSM() {
         cout << "All random searches successful!" << endl;
     }
     
-    cout << "\n=== LSM Tree Test Results ===" << endl;
+    cout << "\n=== Log B+ Tree Test Results ===" << endl;
     if (allPresent && isSorted && randomSearchesWork) {
-        cout << "LSM Tree Test PASSED! All functionality working correctly." << endl;
+        cout << "Log B+ Tree Test PASSED! All functionality working correctly." << endl;
     } else {
-        cout << "LSM Tree Test FAILED! Some issues detected." << endl;
+        cout << "Log B+ Tree Test FAILED! Some issues detected." << endl;
     }
     
-    delete lsmTree;
+    delete logBTree;
 }
 
 void test1() {

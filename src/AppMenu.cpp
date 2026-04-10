@@ -3,7 +3,7 @@
 	#include <iostream>
 	#include <string>
 	#include "BTree.cpp"
-	#include "../h/LSMTree.hpp"
+	#include "../h/LogBTree.hpp"
 	
 	using namespace std;
 	
@@ -11,8 +11,8 @@
 	void searchAndDisplayRecord(BPlusTree<int>* tree, const std::string& filename, int searchId);
 	void displayAllRecords(BPlusTree<int>* tree, const std::string& filename);
 	void testRemoveFunction();
-	void testLSM();
-	void cleanupLSMFiles(const std::string& baseName, int levels);
+	void testLogBTree();
+	void cleanupLogBTreeFiles(const std::string& baseName, int levels);
 	
 	void AppMenu::printMenu() {
 		cout << "\n=== B+ Tree Database Index Manager ===" << endl;
@@ -33,8 +33,8 @@
 		cout << "Enter your choice: ";
 	}
 	
-	void AppMenu::lsmOperations() {
-		cout << "=== LSM Tree Operations ===" << endl;
+	void AppMenu::logBTreeOperations() {
+		cout << "=== Log B+ Tree Operations ===" << endl;
 		
 		string filename;
 		cout << "Enter CSV filename to index: ";
@@ -48,18 +48,18 @@
 		
 		vector<int> levelCapacities = {80, 200, 500};
 		const int levels = static_cast<int>(levelCapacities.size());
-		const string lsmName = "Interactive";
+		const string logBTreeName = "Interactive";
 		
-		cleanupLSMFiles(lsmName, levels);
+		cleanupLogBTreeFiles(logBTreeName, levels);
 		
-		LSMTree* lsmTree = new LSMTree(3, levels, levelCapacities, lsmName);
+		LogBTree* logBTree = new LogBTree(3, levels, levelCapacities, logBTreeName);
 		
 		while (true) {
-			cout << "\n=== LSM Tree Operations Menu ===" << endl;
+			cout << "\n=== Log B+ Tree Operations Menu ===" << endl;
 			cout << "1. Insert Key-Value Pair" << endl;
 			cout << "2. Search for Key" << endl;
 			cout << "3. Print All Records" << endl;
-			cout << "4. Print LSM Statistics" << endl;
+			cout << "4. Print Log B+ Tree Statistics" << endl;
 			cout << "5. Insert Multiple Keys (1-100)" << endl;
 			cout << "6. Insert Multiple Keys (101-200)" << endl;
 			cout << "7. Build Index from CSV File" << endl;
@@ -76,18 +76,18 @@
 					cin >> key;
 					cout << "Enter value: ";
 					cin >> value;
-					lsmTree->insert(key, value);
+					logBTree->insert(key, value);
 					cout << "Inserted key " << key << " with value " << value << endl;
-					cout << "Memory elements: " << lsmTree->getMemoryElements() 
-						 << ", Disk files: " << lsmTree->getDiskFiles() 
-						 << ", Total: " << lsmTree->getTotalElements() << endl;
+					cout << "Memory elements: " << logBTree->getMemoryElements() 
+						 << ", Disk files: " << logBTree->getDiskFiles() 
+						 << ", Total: " << logBTree->getTotalElements() << endl;
 					break;
 				}
 				case 2: {
 					int key;
 					cout << "Enter key to search: ";
 					cin >> key;
-					int* result = lsmTree->search(key);
+					int* result = logBTree->search(key);
 					if (result) {
 						cout << "Found key " << key << " at file position: " << *result << endl;
 						
@@ -110,8 +110,8 @@
 					break;
 				}
 				case 3: {
-					cout << "\n=== All Records in LSM Tree ===" << endl;
-					auto allRecords = lsmTree->getAllRecords();
+					cout << "\n=== All Records in Log B+ Tree ===" << endl;
+					auto allRecords = logBTree->getAllRecords();
 					cout << "Total records: " << allRecords.size() << endl;
 					
 					int showCount = static_cast<int>(allRecords.size());
@@ -140,14 +140,14 @@
 					break;
 				}
 				case 4: {
-					cout << "\n=== LSM Tree Statistics ===" << endl;
-					cout << "Memory elements: " << lsmTree->getMemoryElements() << endl;
-					cout << "Disk files: " << lsmTree->getDiskFiles() << endl;
-					cout << "Total elements: " << lsmTree->getTotalElements() << endl;
+					cout << "\n=== Log B+ Tree Statistics ===" << endl;
+					cout << "Memory elements: " << logBTree->getMemoryElements() << endl;
+					cout << "Disk files: " << logBTree->getDiskFiles() << endl;
+					cout << "Total elements: " << logBTree->getTotalElements() << endl;
 					cout << "Memory limit: " << levelCapacities[0] << " keys" << endl;
 					
-					if (lsmTree->getDiskFiles() > 0) {
-						cout << "Disk files pattern: LSM_" << lsmName << "_LVL#.bin" << endl;
+					if (logBTree->getDiskFiles() > 0) {
+						cout << "Disk files pattern: Log_" << logBTreeName << "_LVL#.bin" << endl;
 					} else {
 						cout << "No disk files (all data in memory)" << endl;
 					}
@@ -156,10 +156,10 @@
 				case 5: {
 					cout << "Inserting keys 1-100..." << endl;
 					for (int i = 1; i <= 100; i++) {
-						lsmTree->insert(i, i * 100);
+						logBTree->insert(i, i * 100);
 						if (i % 20 == 0) {
-							cout << "Inserted " << i << " keys. Memory: " << lsmTree->getMemoryElements() 
-								 << ", Disk files: " << lsmTree->getDiskFiles() << endl;
+							cout << "Inserted " << i << " keys. Memory: " << logBTree->getMemoryElements() 
+								 << ", Disk files: " << logBTree->getDiskFiles() << endl;
 						}
 					}
 					cout << "Completed inserting keys 1-100!" << endl;
@@ -168,17 +168,17 @@
 				case 6: {
 					cout << "Inserting keys 101-200..." << endl;
 					for (int i = 101; i <= 200; i++) {
-						lsmTree->insert(i, i * 100);
+						logBTree->insert(i, i * 100);
 						if (i % 20 == 0) {
-							cout << "Inserted " << i << " keys. Memory: " << lsmTree->getMemoryElements() 
-								 << ", Disk files: " << lsmTree->getDiskFiles() << endl;
+							cout << "Inserted " << i << " keys. Memory: " << logBTree->getMemoryElements() 
+								 << ", Disk files: " << logBTree->getDiskFiles() << endl;
 						}
 					}
 					cout << "Completed inserting keys 101-200!" << endl;
 					break;
 				}
 				case 7: {
-					cout << "\n=== Building LSM Index from CSV File ===" << endl;
+					cout << "\n=== Building Log B+ Tree Index from CSV File ===" << endl;
 					cout << "Using file: " << filename << endl;
 					
 					ifstream file(filename);
@@ -200,25 +200,25 @@
 						position = file.tellg() - static_cast<streampos>(line.length()+2);
 						
 						int id = stoi(line.substr(0, line.find(',')));
-						lsmTree->insert(id, static_cast<int>(position));
+						logBTree->insert(id, static_cast<int>(position));
 						count++;
 						
 						if (count % 50 == 0) {
-							cout << "Inserted " << count << " records. Memory: " << lsmTree->getMemoryElements() 
-								 << ", Disk files: " << lsmTree->getDiskFiles() 
-								 << ", Total: " << lsmTree->getTotalElements() << endl;
+							cout << "Inserted " << count << " records. Memory: " << logBTree->getMemoryElements() 
+								 << ", Disk files: " << logBTree->getDiskFiles() 
+								 << ", Total: " << logBTree->getTotalElements() << endl;
 						}
 					}
 					
 					file.close();
-					cout << "Built LSM index with " << count << " records from " << filename << endl;
-					cout << "Final state - Memory: " << lsmTree->getMemoryElements() 
-						 << ", Disk files: " << lsmTree->getDiskFiles() 
-						 << ", Total: " << lsmTree->getTotalElements() << endl;
+					cout << "Built Log B+ Tree index with " << count << " records from " << filename << endl;
+					cout << "Final state - Memory: " << logBTree->getMemoryElements() 
+						 << ", Disk files: " << logBTree->getDiskFiles() 
+						 << ", Total: " << logBTree->getTotalElements() << endl;
 					break;
 				}
 				case 0: {
-					delete lsmTree;
+					delete logBTree;
 					return;
 				}
 				default: {
@@ -405,11 +405,11 @@
 					break;
 				}
 				case 12: {
-					testLSM();
+					testLogBTree();
 					break;
 				}
 				case 13: {
-					lsmOperations();
+					logBTreeOperations();
 					break;
 				}
 				case 0: {
