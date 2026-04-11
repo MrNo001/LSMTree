@@ -3,6 +3,8 @@
 #include <climits>
 #include <iostream>
 #include <random>
+#include <utility>
+#include <vector>
 
 SkipList::SkipList() : head(new SkipListNode(INT_MIN, 0)), level(0), size(0) {}
 
@@ -42,7 +44,7 @@ int SkipList::search(int key) {
 }
 
 void SkipList::insert(int key, int value) {
-    SkipListNode* update[MAX_LEVEL];
+    SkipListNode* update[MAX_LEVEL]; // array of nodes to update on each level (the first node to the left of the new node)
     SkipListNode* x = head;
     for (int i = level; i >= 0; i--) {
         while (x->next[i] != nullptr && x->next[i]->key < key) {
@@ -105,4 +107,33 @@ void SkipList::print() {
         x = x->next[0];
     }
     std::cout << "\n";
+}
+
+int SkipList::getSize() const {
+    return size;
+}
+
+void SkipList::clear() {
+    SkipListNode* node = head->next[0];
+    while (node != nullptr) {
+        SkipListNode* nxt = node->next[0];
+        delete node;
+        node = nxt;
+    }
+    for (int i = 0; i < MAX_LEVEL; i++) {
+        head->next[i] = nullptr;
+    }
+    level = 0;
+    size = 0;
+}
+
+std::vector<std::pair<int, int>> SkipList::sortedEntries() const {
+    std::vector<std::pair<int, int>> out;
+    out.reserve(static_cast<size_t>(size));
+    SkipListNode* x = head->next[0];
+    while (x != nullptr) {
+        out.emplace_back(x->key, x->value);
+        x = x->next[0];
+    }
+    return out;
 }

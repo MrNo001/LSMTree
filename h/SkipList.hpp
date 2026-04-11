@@ -1,6 +1,8 @@
 #ifndef SKIPLIST_HPP
 #define SKIPLIST_HPP
 
+#include <utility>
+#include <vector>
 
 #define MAX_LEVEL 10
 
@@ -25,6 +27,9 @@ class SkipList {
     int search(int key);
     void print();
     int random_level();
+    int getSize() const;
+    void clear();
+    std::vector<std::pair<int, int>> sortedEntries() const;
 
     private:
     SkipListNode* head;
