@@ -27,6 +27,32 @@ int main() {
         assert(store2.search(3) == 30);
     }
 
+    {
+        LSMStore store(tmp, 100);
+        store.insert(7, 70);
+        store.remove(7);
+        assert(store.search(7) == -1);
+        store.insert(7, 71);
+        assert(store.search(7) == 71);
+    }
+
+    {
+        fs::remove_all(tmp);
+        fs::create_directories(tmp);
+        LSMStore store(tmp, 3);
+        store.insert(1, 10);
+        store.insert(2, 20);
+        store.insert(3, 30);
+        assert(store.sstableRelativePaths().size() == 1);
+        store.remove(1);
+        store.insert(4, 40);
+        store.insert(5, 50);
+        assert(store.sstableRelativePaths().size() == 2);
+        LSMStore store2(tmp, 100);
+        assert(store2.search(1) == -1);
+        assert(store2.search(2) == 20);
+    }
+
     fs::remove_all(tmp);
     return 0;
 }

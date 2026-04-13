@@ -5,15 +5,20 @@
 
 #include <cstddef>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
 
 class LSMStore {
 public:
+    /** Reserved value; do not use as a logical payload in insert(). */
+    static constexpr int kTombstoneValue = std::numeric_limits<int>::min();
+
     LSMStore(std::filesystem::path dataDirectory, std::size_t memtableFlushThresholdEntries);
 
     void insert(int key, int value);
+    void remove(int key);
     int search(int key) const;
 
     std::size_t memtableSize() const;

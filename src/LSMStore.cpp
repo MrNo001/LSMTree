@@ -25,7 +25,7 @@ std::string makeSstFilename(std::uint64_t id) {
     return oss.str();
 }
 
-}  // namespace
+}  // helpers 
 
 LSMStore::LSMStore(std::filesystem::path dataDirectory, std::size_t memtableFlushThresholdEntries)
     : dataDir_(std::move(dataDirectory)),
@@ -84,14 +84,25 @@ void LSMStore::insert(int key, int value) {
     flushMemtableIfNeeded();
 }
 
+void LSMStore::remove(int key) {
+    memtable_->insert(key, kTombstoneValue);
+    flushMemtableIfNeeded();
+}
+
 int LSMStore::search(int key) const {
     const int inMem = memtable_->search(key);
     if (inMem != -1) {
+        if (inMem == kTombstoneValue) {
+            return -1;
+        }
         return inMem;
     }
     for (auto it = sstablePaths_.rbegin(); it != sstablePaths_.rend(); ++it) {
         int value = 0;
         if (SSTable::searchKey(absolutePath(*it), key, value)) {
+            if (value == kTombstoneValue) {
+                return -1;
+            }
             return value;
         }
     }
