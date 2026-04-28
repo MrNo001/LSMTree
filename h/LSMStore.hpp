@@ -20,6 +20,7 @@ public:
     void insert(int key, int value);
     void remove(int key);
     int search(int key) const;
+    std::vector<std::pair<int, int>> rangeQuery(int startKey, int endKey) const;
 
     std::size_t memtableSize() const;
     const std::vector<std::string>& sstableRelativePaths() const;

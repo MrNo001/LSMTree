@@ -5,8 +5,10 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <map>
 #include <regex>
 #include <sstream>
+#include <unordered_set>
 
 namespace {
 
@@ -107,6 +109,46 @@ int LSMStore::search(int key) const {
         }
     }
     return -1;
+}
+
+std::vector<std::pair<int, int>> LSMStore::rangeQuery(int startKey, int endKey) const {
+    if (startKey > endKey) {
+        std::swap(startKey, endKey);
+    }
+
+    // Keep the newest value per key while maintaining sorted output by key.
+    std::map<int, int> resolved;
+    std::unordered_set<int> seen;
+
+    const auto considerEntry = [&](int key, int value) {
+        if (key < startKey || key > endKey) {
+            return;
+        }
+        if (seen.find(key) != seen.end()) {
+            return;
+        }
+        seen.insert(key);
+        resolved[key] = value;
+    };
+
+    for (const auto& entry : memtable_->sortedEntries()) {
+        considerEntry(entry.first, entry.second);
+    }
+
+    for (auto it = sstablePaths_.rbegin(); it != sstablePaths_.rend(); ++it) {
+        for (const auto& entry : SSTable::readAll(absolutePath(*it))) {
+            considerEntry(entry.first, entry.second);
+        }
+    }
+
+    std::vector<std::pair<int, int>> out;
+    out.reserve(resolved.size());
+    for (const auto& kv : resolved) {
+        if (kv.second != kTombstoneValue) {
+            out.push_back(kv);
+        }
+    }
+    return out;
 }
 
 std::size_t LSMStore::memtableSize() const {

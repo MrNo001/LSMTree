@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <filesystem>
+#include <utility>
 
 int main() {
     namespace fs = std::filesystem;
@@ -51,6 +52,37 @@ int main() {
         LSMStore store2(tmp, 100);
         assert(store2.search(1) == -1);
         assert(store2.search(2) == 20);
+    }
+
+    {
+        fs::remove_all(tmp);
+        fs::create_directories(tmp);
+        LSMStore store(tmp, 2);
+        store.insert(1, 10);
+        store.insert(3, 30);  // flush #1
+        store.insert(2, 20);
+        store.insert(3, 31);  // flush #2 (newer value for key 3)
+        store.remove(1);
+        store.insert(4, 40);  // flush #3 (tombstone for key 1)
+        store.insert(5, 50);  // remains in memtable
+
+        const auto result = store.rangeQuery(1, 5);
+        assert(result.size() == 4);
+        assert(result[0] == std::make_pair(2, 20));
+        assert(result[1] == std::make_pair(3, 31));
+        assert(result[2] == std::make_pair(4, 40));
+        assert(result[3] == std::make_pair(5, 50));
+    }
+
+    {
+        fs::remove_all(tmp);
+        fs::create_directories(tmp);
+        LSMStore store(tmp, 10);
+        store.insert(1, 100);
+        store.insert(4, 400);
+        const auto result = store.rangeQuery(5, 2);
+        assert(result.size() == 1);
+        assert(result[0] == std::make_pair(4, 400));
     }
 
     fs::remove_all(tmp);
