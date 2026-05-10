@@ -1,4 +1,4 @@
-# LSM-Tree
+# LSM and B+ tree.
 
 Simple implementation of a Log-Streuctured Merge storage engine
 
@@ -45,6 +45,48 @@ The project follows a classic LSM design: write to memory first (**MemTable**), 
   4. First match wins; if the match is a tombstone, result is treated as deleted (`-1`).
 
 At startup, `LSMStore` creates/opens the data directory, loads `MANIFEST`, and rebuilds the in-memory list of known SSTables so reads can immediately see persisted data.
+
+---
+
+## B+ tree on-disk page (`BTreeStore`)
+
+Each node is one **4096-byte page**. Layout is slotted: a fixed header, a **slot directory** (index), and a **record heap** toward the end of the page.
+
+```
+byte 0
+│
+▼  ┌──────────────────────────────────────────────────────────────────┐
+   │ PageHeader                                                       │
+   │  page_id, parent_id, next_page_id, prev_page_id, slot_count,     │
+   │  free_ptr, is_leaf                                               │
+   ├──────────────────────────────────────────────────────────────────┤
+   │ Slot[0] │ Slot[1] │ ... │ Slot[slot_count - 1]                   │
+   │ (offset, size) per slot — points into record bytes below         │
+   ├──────────────────────────────────────────────────────────────────┤
+   │                     (unused middle shrinks as slots / heap meet) │
+   ├──────────────────────────────────────────────────────────────────┤
+   │ record bytes … stored in [free_ptr .. 4096)                      │
+   └──────────────────────────────────────────────────────────────────┘
+                                                         4096-byte page ▲
+```
+
+**Leaf page** (`is_leaf = 1`): `prev_page_id` / `next_page_id` link leaves left/right at the same level. Each record is **key (4 bytes) + value length (2 bytes) + payload**.
+
+**Internal page** (`is_leaf = 0`): `prev_page_id` holds the **leftmost child** page id; `next_page_id` is unused. Each slot stores **separator key (4 bytes) + right child page id (4 bytes)** — eight bytes per entry — so keys partition subtrees to the right.
+
+Conceptually (keys `·` separate ranges; `L*` are child page ids):
+
+```
+internal                         leaf chain (siblings)
+────────                         ─────────────────────
+
+        ┌─ keys ··· ─┐           page A ◄──► page B ◄──► page C
+        │            │              (k,v)*   (k,v)*   (k,v)*
+   L0   │   L1  L2   │   L3
+        └────────────┘
+      ▲
+      └── header.prev_page_id = L0
+```
 
 ---
 
